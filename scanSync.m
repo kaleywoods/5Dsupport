@@ -1,6 +1,6 @@
-function helical_sync_toolbox(bellowsDataFilename, scanDirectory, outputDirectory, numberOfScans)
+function scanSync(bellowsDataFilename, scanDirectory, outputDirectory, numberOfScans)
 
-% helical_sync_toolbox(bellowsDataFilename, scanDirectory, outputDirectory,
+% scanSync(bellowsDataFilename, scanDirectory, outputDirectory,
 % numberOfScans)
 %
 % Writes raw image files and data structures from bellows signal file and

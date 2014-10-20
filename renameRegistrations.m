@@ -4,10 +4,6 @@ function renameRegistrations(registrationDir, outputDir, refScanNumber)
 
 mkdir(outputDir)
 
-%registrationDir = '/media/fiveDdata/dylan/Pig/deedsRegistrations/Registered/scan2';
-%outputDir = '/media/fiveDdata/dylan/Pig/deedsRegistrations/Organized/scan2';
-
-% Set reference scan number and voxel size
 ref = refScanNumber;
 elementSpacing = [1 1 1];
 

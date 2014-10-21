@@ -10,6 +10,8 @@ echo "Usage: batchDeeds inputDirectory outputDirectory referenceScanNumber"
 exit
 fi
 
+# Make output directory
+mkdir $2
 # Get list of files in inputDirectory
 
 shopt -s nullglob

@@ -9,8 +9,9 @@
 function sortScans(scanFiles, outputDir)
 
 mkdir(outputDir)
+firstScan = scanFiles{1,2};
 numScans = scanFiles{end,2};
-for ind = 1:numScans
+for ind = firstScan:numScans
 
 	% Get filenames of slices in this scan
 	scanSlices = cellfun(@(x) x == ind, scanFiles(:,2));

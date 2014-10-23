@@ -22,7 +22,7 @@ for ind = firstScan:numScans
 	mkdir(scanPath);
 	errors = zeros(length(scanSlices),1);
 	for ind2 = 1:length(scanSlices)
-		symCmd = ['ln -s ' '"' scanSlices{ind2} '" ' '"' fullfile(scanPath,sprintf('scan%d_slice%d.dcm',ind, ind2)) '"'];
+		symCmd = ['ln -s ' '"' scanSlices{ind2} '" ' '"' fullfile(scanPath,sprintf('scan%d_slice%03d.dcm',ind, ind2)) '"'];
 		errors(ind2) = system(symCmd);
 	end
 

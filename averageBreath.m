@@ -30,7 +30,7 @@ hold on
 plot(t, breathTrace,'b');
 set(selectionPlot.CurrentAxes,'fontsize',20)
 xlabel('Time (s)');
-ylabel('Breathing Amplitude (V)');
+ylabel('Bellows Voltage (V)');
 title(sprintf('Select a region of the breathing trace to average.'),'FontSize',20);
 pointList = selectdata('sel','r','Verify','off','Pointer','crosshair');
 hold off
@@ -58,7 +58,7 @@ hold on
 plot(t(peakInds),breathTrace(peakInds),'ro','MarkerSize',8);
 plot(t(valleyInds),breathTrace(valleyInds),'ko','MarkerSize',8);
 xlabel('Time (s)', 'fontsize', 20);
-ylabel('Breathing Amplitude (V)', 'fontsize',20);
+ylabel('Bellows Voltage (V)', 'fontsize',20);
 hold off
 
 % Skip first and last peaks
@@ -148,4 +148,4 @@ set(avgBreathFig.CurrentAxes, 'fontsize', 20);
 set(avgBreathFig,'units','normalized','position', [0.1000    0.1000    0.8100    0.8100]);
 plot(time,voltage);
 xlabel('Time (s)', 'fontsize',20);
-ylabel('Breathing Amplitude (V)', 'fontsize', 20);
+ylabel('Bellows Voltage (V)', 'fontsize', 20);

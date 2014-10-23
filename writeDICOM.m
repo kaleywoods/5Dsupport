@@ -66,11 +66,12 @@ mkdir(outputDir);
 	for j = 1:size(phaseImage,3)
 
 		% Modify some tags	
-		sliceName = sprintf('phase%d_slice_%d',ind,j);
+		sliceName = sprintf('phase%d_slice_%03d',ind,j);
 		sliceHeader = refScanHeaders{j};
 		sliceHeader.SeriesNumber = ind;
 		sliceHeader.SeriesDescription = phaseNames{ind};
 		sliceHeader.SeriesInstanceUID = sprintf('%d',ind);
+		sliceHeader.StudyDescription = '5D Research Protocol';
 
 
 		% Time to save

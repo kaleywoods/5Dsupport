@@ -42,7 +42,7 @@ end
 % Flip voltage for sanity
 voltage = -voltage;
 
-% Flip exhalation because of MIM weirdness
+% Flip exhalation because reasons
 exhaleAmplitudes = exhaleAmplitudes(:)';
 exhaleAmplitudes = flipdim(exhaleAmplitudes,2);
 
@@ -79,7 +79,6 @@ inhaleF(end) = (voltage(inhaleInds(end)) - voltage(inhaleInds(end) -1 )) / (time
 % Handle all other points
 inhaleF(2:end-1) = arrayfun(@(x) (voltage(x + 1) - voltage(x)) / (time(x + 1) - time(x)), inhaleInds(2:end-1));
 
-% Flip signs and organize phases.  Exhale first (???)
-volt = -[inhaleV exhaleV];
-flow = -[inhaleF exhaleF];
-
+% Flip signs and organize phases.  exhale first (???)
+volt = -[flipdim(exhaleV,2) flipdim(inhaleV,2)];
+flow = -[flipdim(exhaleF,2) flipdim(inhaleF,2)];

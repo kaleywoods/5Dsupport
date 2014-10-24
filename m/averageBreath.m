@@ -16,7 +16,7 @@ channels.mouthPressure = 2;
 channels.bloodPressure = 5;
 
 % Set bellows sample rate in seconds
-bellowsSampleRate = 0.1;
+bellowsSampleRate = 0.01;
 
 % Load breathing trace
 breathTrace = importdata(bellowsDataFilename);
@@ -70,8 +70,8 @@ end
 
 %% Discard outliers
 
-% Set tolerance to 3 standard deviatons
-tol = 3;
+% Set tolerance to 2 standard deviatons
+tol = 2;
 
 % Check amplitude
 ampMin = cellfun(@min, breaths);
@@ -149,3 +149,4 @@ set(avgBreathFig,'units','normalized','position', [0.1000    0.1000    0.8100   
 plot(time,voltage);
 xlabel('Time (s)', 'fontsize',20);
 ylabel('Bellows Voltage (V)', 'fontsize', 20);
+end

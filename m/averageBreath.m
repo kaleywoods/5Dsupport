@@ -2,10 +2,17 @@
 % of the patient's breathing trace.  The average breath can then be sampled for 
 % (v,f) phases to generate images at using generate5DCT
 %
-% usage: [breathAmp, t] = averageBreath(bellowsDataFilename)
+% usage: [time, voltage] = averageBreath(bellowsDataFilename)
 % 
 % dependencies: selectdata, consolidator
 %
+% Arguments (in):
+% bellowsDataFilename: self explanatory
+%
+% Arguments (out):
+% time: 1 x 500 vector of time points, with the same spacing as the bellows sample rate (.01 s).
+% voltage: 1x 500 vector of corresponding voltage values of the average breath.
+
 function [time, voltage] = averageBreath(bellowsDataFilename)
 
 % Set data channels
@@ -87,56 +94,80 @@ outlierInds = outlierInds + (period < (mean(period) - tol * std(period))) | (per
 % Remove outliers in amplitude and period
 breaths(logical(outlierInds)) = [];
 
-
 %% Generate average breath
-breathGrid = [5:5:95]; 
+
+%breathGrid = [5:5:85]; 
 
 % Invert the breathing signal for sanity reasons
 breaths = cellfun(@(x) x * -1, breaths, 'uni',false);
 % Now, inhalation is positive and exhalation is negative
-
-% Inhalation
 [~,maxInhaleInds] = cellfun(@max, breaths,'uni',false);
-inhalePercs = cellfun(@(x,y) prctile(x(1:y),breathGrid), breaths, maxInhaleInds, 'uni',false);
-inhaleTimes = cellfun(@(x,y,z) bsxfun(@(q,r) abs(q - r), x(1:y), z), breaths, maxInhaleInds, inhalePercs, 'uni',false);
-[~,inhaleTimes] = cellfun(@min,inhaleTimes,'uni',false);
 
-% Conversion from cell to matrix -- why not?
-inhalePercs = cell2mat(inhalePercs);
-inhaleTimes = cell2mat(inhaleTimes);
+% Assemble full trace with outliers removed
+breathTrace = cell2mat(breaths);
 
-% Calculate the average voltage and time of each percentile in breathGrid
-inhalePercAvg = mean(inhalePercs,1);
-inhaleTimeAvg = mean(inhaleTimes,1);
+% Compute 5th and 85th percentile amplitude, treat as maximum and minimum
+% Make grid of amplitudes to sample at
 
+breathGrid = linspace(prctile(breathTrace,5),prctile(breathTrace,95),25);
 
-% Exhalation
-exhalePercs = cellfun(@(x,y) prctile(x(y:end),breathGrid), breaths, maxInhaleInds,'uni',false);
-exhaleTimes = cellfun(@(x,y,z) bsxfun(@(q,r) abs(q - r), x(y:end), z), breaths, maxInhaleInds, exhalePercs, 'uni',false);
-[~,exhaleTimes] = cellfun(@min,exhaleTimes,'uni',false);
-% Shift exhalation times
-exhaleTimes = cellfun(@(x,y) x + y, exhaleTimes, maxInhaleInds, 'uni', false);
+% Smooth each breath
+breaths = cellfun(@smooth, breaths, 'uni',false);
 
-% Conversion from cell to matrix -- why not?
-exhalePercs = cell2mat(exhalePercs);
-exhaleTimes = cell2mat(exhaleTimes);
+% For each breath:
+% Find the times from the beginning of the breath that the voltage
+% values in breathGrid occur, treating inhalation and exhalation
+% seperately.
 
-% Calculate the average voltage and time of each percentile in breathGrid.
-% Flip the order so that it can be appended to the inhalation
-exhalePercAvg = flipdim(mean(exhalePercs,1),2);
-exhaleTimeAvg = flipdim(mean(exhaleTimes,1),2);
+allInhaleTimes = zeros(length(breathGrid), length(breaths));
+allExhaleTimes = zeros(length(breathGrid), length(breaths));
+allMaxTimes = zeros(1, length(breaths));
+allMaxAmps = zeros(1, length(breaths));
 
-avgT = [inhaleTimeAvg exhaleTimeAvg];
-avgV = [inhalePercAvg exhalePercAvg];
+for ind = 1:length(breaths)
+
+% Interpolate bellows voltage for higher accuracy when finding times
+breathT = linspace(0,length(breaths{ind}) * bellowsSampleRate,5000);
+bellowT = [0:bellowsSampleRate:(length(breaths{ind}) - 1) * bellowsSampleRate];
+breathV = interp1(bellowT,breaths{ind},breathT,'pchip');
+
+% Inhale
+[~, maxInhaleInd] = max(breathV); 
+inhaleTimes = bsxfun(@(x,y) abs(x - y), breathV(1:maxInhaleInd)', breathGrid);
+[~,inhaleTimes] = min(inhaleTimes);
+inhaleTimes = breathT(inhaleTimes);
+
+% Exhale
+exhaleTimes = bsxfun(@(x,y) abs(x - y), breathV(maxInhaleInd:end)',breathGrid);
+[~,exhaleTimes] = min(exhaleTimes);
+exhaleTimes = exhaleTimes + maxInhaleInd - 1;
+exhaleTimes = breathT(exhaleTimes);
+
+allInhaleTimes(:,ind) = inhaleTimes';
+allExhaleTimes(:,ind) = exhaleTimes';
+allMaxTimes(ind) = breathT(maxInhaleInd);
+allMaxAmps(ind) = breathV(maxInhaleInd);
+end
+
+% Average the times across all breaths
+inhaleTimesAvg = mean(allInhaleTimes,2);
+exhaleTimesAvg = mean(allExhaleTimes,2);
+maxTime = mean(allMaxTimes);
+maxAmp = mean(allMaxAmps);
+
+% Flip order of exhalation values and times so that they
+% can be appended to inhalation and insert peak value
+
+avgT = [inhaleTimesAvg; maxTime; flipdim(exhaleTimesAvg,1)];
+avgV = [breathGrid'; maxAmp; flipdim(breathGrid',1)];
 
 % Remove replicate data points
 [avgT, avgV, ~] = consolidator(avgT,avgV);
 
-% Convert times to seconds
-avgT = avgT * bellowsSampleRate;
-
+% Convert times to seconds and start at 0
+avgT = avgT - avgT(1);
 % Use cubic spline interpolaton
-time = linspace(min(avgT),max(avgT),500);
+time = linspace(0,avgT(end),500);
 voltage = interp1(avgT, avgV, time, 'spline');
 
 % Okay, invert the voltage again 

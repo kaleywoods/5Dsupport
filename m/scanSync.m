@@ -174,29 +174,29 @@ end
 %allScanHeaders(find([allScanHeaders{:,2}] == seriesNumbers(numberOfScans + 1), 1, 'first'):end,:) = [];
 %end
 
-%% Fix unequal numbers of slices or misaligned scans
-
-% Get count of slices for each scan
-%sliceCounts = arrayfun(@(x) nnz(cell2mat(allScanHeaders(:,2)) == x), seriesNumbers);
+%%% Fix unequal numbers of slices or misaligned scans
 %
-%% Check for different slice numbers
+%% Get count of slices for each scan
+%sliceCounts = arrayfun(@(x) nnz(cell2mat(allScanHeaders(:,2)) == x), seriesNumbers);
+%%
+%%% Check for different slice numbers
 %
 %if any(diff(sliceCounts))
 %warning('Scans do not have equal numbers of slices. Removing errant slices...');
 %end
 %
-%% Get z positions of each scan
+%%% Get z positions of each scan
 %zPositions = cell2mat(cellfun(@(x) x.('SliceLocation'),allScanHeaders(:,1),'UniformOutput',false));
 %zPositionsUnique = unique(zPositions);
 %
-%% For each unique position, verify that it occurs in each scan
+%%% For each unique position, verify that it occurs in each scan
 %numOccurences = sum(bsxfun(@eq,zPositionsUnique,zPositions'), 2);
 %removeSlices = numOccurences ~= numberOfScans;
 %
-%% If slice position doesn't occur in all scans, remove it
+%%% If slice position doesn't occur in all scans, remove it
 %removeHeaders = any(bsxfun(@eq,zPositions,zPositionsUnique(removeSlices)'),2);
 %allScanHeaders(removeHeaders,:) = [];
-%
+
 %% Currently does not use paralell toolbox due to memory issues while
 %% resampling scans.
 
@@ -245,7 +245,7 @@ acquisitionTimesNorm = acquisitionTimes - acquisitionTimes(1);
 bellowsTimeXrayOnNorm = bellowsTimeXrayOn - bellowsTimeXrayOn(1);
 
 % Interpolate to find bellows time corresponding to slice acquisition time
-bellowsVoltageSlices = interp1(bellowsTimeXrayOnNorm,bellowsVoltageXrayOn,acquisitionTimesNorm,'cubic');
+bellowsVoltageSlices = interp1(bellowsTimeXrayOnNorm,bellowsVoltageXrayOn,acquisitionTimesNorm,'pchip');
 
 % Load image
 scanImage = cell2mat(cellfun(@(x) dicomread(x), sliceFileNames, 'UniformOutput',false)');  

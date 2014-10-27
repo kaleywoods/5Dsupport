@@ -3,7 +3,7 @@
 function [invY, invX, invZ] = invertDVF(vY,vX,vZ)
 
 
-numIterations = 10;
+numIterations = 40;
 
 % Eliminate singlton dimensions and cast as double
 vY = squeeze(double(vY));
@@ -38,7 +38,7 @@ for ind = 1: numIterations
 % invZn = - mirt3D_mexinterp(dvfZ, X + invX, Y + invY, Z + invZ);
 
 
-inv = - ba_interp3(dvf,Y + invY, X + invX, Z + invZ, 'linear');
+inv = - ba_interp3(dvf,Y + invY, X + invX, Z + invZ, 'cubic');
 invX = inv(:,:,:,1);
 invY = inv(:,:,:,2);
 invZ = inv(:,:,:,3);

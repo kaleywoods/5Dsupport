@@ -52,32 +52,43 @@ exhaleAmplitudes = flipdim(exhaleAmplitudes,2);
 %% Calculate exhale phases
 
 % Voltage from maximum inspiration to end
-exhaleV = prctile(voltage(maxInd:end),exhaleAmplitudes);
-
-% Find closest indices to where these values occur 
+exhaleV = min(voltage(maxInd:end)) + (exhaleAmplitudes/100) .* range(voltage(maxInd:end));
 [~,exhaleInds] = min(abs(bsxfun(@minus, exhaleV, voltage(maxInd:end)')));
-exhaleInds = exhaleInds + maxInd - 1;
 
-% Handle 0% and 100% flow calculation
+% Find flow
 exhaleF = zeros(size(exhaleV));
-exhaleF(1) = (voltage(exhaleInds(1) + 1) - voltage(exhaleInds(1))) / (time(exhaleInds(1) + 1) - time(exhaleInds(1)));
+for ind = 1:length(exhaleV)
 
-exhaleF(end) = (voltage(exhaleInds(end)) - voltage(exhaleInds(end) -1 )) / (time(exhaleInds(end)) - time(exhaleInds(end)-1 ));
+	if exhaleInds(ind) < 6 || exhaleInds(ind) > (length(voltage(maxInd:end)) - 5)
+	exhaleF(ind) = 0;
+	else
+	
+	flowInd = maxInd + exhaleInds(ind) - 1;
+	flowRegion = [flowInd - 5: flowInd + 5];
+	flowFit = polyfit(time(flowRegion),voltage(flowRegion),1);	
+	exhaleF(ind) = flowFit(1);
+	end
+end
 
-% Handle all other points
-exhaleF(2:end-1) = arrayfun(@(x) (voltage(x + 1) - voltage(x)) / (time(x + 1) - time(x)), exhaleInds(2:end-1));
+% Inhale
 
-%% Okay, time for inhalation... 
-inhaleV = prctile(voltage(1:maxInd), inhaleAmplitudes);
-inhaleF = zeros(size(inhaleV));
-% Find indices of amplitude points
+inhaleV = min(voltage(1:maxInd)) + (inhaleAmplitudes/100) .* range(voltage(1:maxInd)); 
 [~,inhaleInds] = min(abs(bsxfun(@minus, inhaleV, voltage(1:maxInd)')));
-inhaleF(1) = (voltage(inhaleInds(1) + 1) - voltage(inhaleInds(1))) / (time(inhaleInds(1) + 1) - time(inhaleInds(1)));
 
-inhaleF(end) = (voltage(inhaleInds(end)) - voltage(inhaleInds(end) -1 )) / (time(inhaleInds(end)) - time(inhaleInds(end)-1 ));
+inhaleF = zeros(size(inhaleV));
+for ind = 1:length(inhaleV)
 
-% Handle all other points
-inhaleF(2:end-1) = arrayfun(@(x) (voltage(x + 1) - voltage(x)) / (time(x + 1) - time(x)), inhaleInds(2:end-1));
+	if inhaleInds(ind) < 6  || inhaleInds(ind) > maxInd - 5
+	exhaleF(ind) = 0;
+	else
+	
+	flowInd = inhaleInds(ind);
+	flowRegion = [flowInd - 5: flowInd + 5];
+	flowFit = polyfit(time(flowRegion),voltage(flowRegion),1);	
+	inhaleF(ind) = flowFit(1);
+	end
+
+end
 
 % Flip signs and organize phases.  exhale first (???)
 volt = -[flipdim(exhaleV,2) flipdim(inhaleV,2)];

@@ -120,7 +120,7 @@ mkdir(outputDirectory);
 % Store header, series number and filename for later sorting
 
 try
-allScanHeaders = cat(2,allScanHeaders,cellfun(@(x) x.('SeriesNumber'), allScanHeaders(:,1), 'UniformOutput', false));
+allScanHeaders = cat(2,allScanHeaders,cellfun(@(x) x.('SeriesInstanceUID'), allScanHeaders(:,1), 'UniformOutput', false));
 allScanHeaders = cat(2,allScanHeaders,cellfun(@(x) time2sec(str2num(x.('AcquisitionTime'))), allScanHeaders(:,1), 'UniformOutput', false));
 allScanHeaders = cat(2,allScanHeaders,scanDirectoryDicoms);
 end
@@ -141,7 +141,7 @@ loadHeaders = waitbar(0,'Scanning subdirectories for DICOM files...');
 
 	try
 	% Read headers and store filename, series number, acquisition time.
-	subfolderHeaders = cat(2,subfolderHeaders, cellfun(@(x) x.('SeriesNumber'), subfolderHeaders(:,1), 'UniformOutput', false));
+	subfolderHeaders = cat(2,subfolderHeaders, cellfun(@(x) x.('SeriesInstanceUID'), subfolderHeaders(:,1), 'UniformOutput', false));
 	subfolderHeaders = cat(2,subfolderHeaders, cellfun(@(x) time2sec(str2num(x.('AcquisitionTime'))), subfolderHeaders(:,1), 'UniformOutput', false));
 	subfolderHeaders = cat(2,subfolderHeaders,subDirectoryDicoms);
 
@@ -158,52 +158,52 @@ end
 % Sort headers according to acquisition time.
 allScanHeaders = sortrows(allScanHeaders,3);
 
-% Get list of series numbers
-seriesNumbers = unique(cell2mat(allScanHeaders(:,2)));
+% Get list of series instance UIDs. 
+scanIDs = unique(allScanHeaders(:,2));
 
 %% Check for topogram, remove
-firstScan = cell2mat(allScanHeaders(:,2));
-firstScan = logical(firstScan == seriesNumbers(1));
+firstScan = cellfun(@(x) strcmp(scanIDs{1},x), allScanHeaders(:,2), 'uni', true);
 
 if nnz(firstScan) == 1
 allScanHeaders(firstScan,:) = [];
 end
 
 %% Consider only first (numberOfScans) scans
-%if numberOfScans < 25
-%allScanHeaders(find([allScanHeaders{:,2}] == seriesNumbers(numberOfScans + 1), 1, 'first'):end,:) = [];
-%end
+if numberOfScans < size(scanIDs,1); 
+warning(sprintf('Dicoms for %d scans found, but the number of scans was set to %d.  Synchronizing only the first %d scans.', size(scanIDs,1), numberOfScans, numberOfScans));
 
-%%% Fix unequal numbers of slices or misaligned scans
-%
-%% Get count of slices for each scan
-%sliceCounts = arrayfun(@(x) nnz(cell2mat(allScanHeaders(:,2)) == x), seriesNumbers);
-%%
-%%% Check for different slice numbers
-%
-%if any(diff(sliceCounts))
-%warning('Scans do not have equal numbers of slices. Removing errant slices...');
-%end
-%
-%%% Get z positions of each scan
-%zPositions = cell2mat(cellfun(@(x) x.('SliceLocation'),allScanHeaders(:,1),'UniformOutput',false));
-%zPositionsUnique = unique(zPositions);
-%
-%%% For each unique position, verify that it occurs in each scan
-%numOccurences = sum(bsxfun(@eq,zPositionsUnique,zPositions'), 2);
-%removeSlices = numOccurences ~= numberOfScans;
-%
-%%% If slice position doesn't occur in all scans, remove it
-%removeHeaders = any(bsxfun(@eq,zPositions,zPositionsUnique(removeSlices)'),2);
-%allScanHeaders(removeHeaders,:) = [];
+unusedScans = cellfun(@(x) strcmp(x, scanIDs(numberOfScans + 1:end)), allScanHeaders(:,2));
+allScanHeaders(unusedScans,:) = [];
+scanIDs(numberOfScans + 1:end) = [];
+end
 
-%% Currently does not use paralell toolbox due to memory issues while
-%% resampling scans.
+%% Fix unequal numbers of slices or misaligned scans
+
+% Get count of slices for each scan
+sliceCounts = cellfun(@(x) nnz(strcmp(x,allScanHeaders(:,2))), scanIDs);
+
+% Get z positions of each scan
+zPositions = cell2mat(cellfun(@(x) x.('SliceLocation'),allScanHeaders(:,1),'UniformOutput',false));
+zPositionsUnique = unique(zPositions);
+
+% Check if more processing is needed
+if any(diff(sliceCounts)) || (length(zPositionsUnique) ~= sliceCounts(1))
+warning('Scans do not have equal numbers of slices. Removing errant slices...');
+
+%% For each unique position, verify that it occurs in each scan
+numOccurences = sum(bsxfun(@eq,zPositionsUnique,zPositions'), 2);
+removeSlices = numOccurences ~= numberOfScans;
+
+%% If slice position doesn't occur in all scans, remove it
+removeHeaders = any(bsxfun(@eq,zPositions,zPositionsUnique(removeSlices)'),2);
+allScanHeaders(removeHeaders,:) = [];
+warning(sprintf('Slices at %d Z positions removed',nnz(removeSlices)));
+end
 
 % Save filenames and scan numbers of dicom slices which were used
 scanLabels = zeros(length(allScanHeaders),1);
-for ind = 1:length(seriesNumbers)
-	scanMask = cellfun(@(x) x == seriesNumbers(ind),allScanHeaders(:,2));
+for ind = 1:size(scanIDs,1)
+	scanMask = strcmp(scanIDs(ind), allScanHeaders(:,2));
 	scanLabels(scanMask) = ind;
 end
 
@@ -217,14 +217,13 @@ loadImages = waitbar(0, 'Synchronizing scans to bellows signal...');
 % Load images
 for ind = 1:numberOfScans
 
-% Set series number and indices within allScanHeaders
-seriesNumber = seriesNumbers(ind);    
-seriesInd = logical(cell2mat(arrayfun(@(x) isequal(seriesNumber,x), [allScanHeaders{:,2}], 'UniformOutput', false)))';
+% Get indices of all slices in this scan
+seriesInds = strcmp(scanIDs(ind),allScanHeaders(:,2));
 
 % Set headers, acquisition times and slice filenames
-scanHeaders = allScanHeaders(seriesInd,1);
-acquisitionTimes = cell2mat(allScanHeaders(seriesInd,3));
-sliceFileNames = allScanHeaders(seriesInd,4);
+scanHeaders = allScanHeaders(seriesInds,1);
+acquisitionTimes = cell2mat(allScanHeaders(seriesInds,3));
+sliceFileNames = allScanHeaders(seriesInds,4);
 
 % Extract slice acquisition time and z position, get scan duration and
 % direction.  Set direction as 1 or 0.
@@ -280,7 +279,7 @@ ecgvp = bvp;
 save(fullfile(outputDirectory,sprintf('image_scan_%d',ind)), 'bvp', 'scan_time', 'direction', 'ecgvp');
 metaImageWrite(scanImage,fullfile(outputDirectory,sprintf('scan_%d_cut',ind)), 'ElementSpacing', [1 1 scanHeaders{1}.SliceThickness])
 
-waitbar((ind/length(seriesNumbers)), loadImages);
+waitbar((ind/numberOfScans), loadImages);
 end
 
 close(loadImages)

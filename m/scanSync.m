@@ -230,7 +230,6 @@ sliceFileNames = allScanHeaders(seriesInds,4);
 zPositions = cell2mat(cellfun(@(x) x.('SliceLocation'), scanHeaders, 'UniformOutput', false))';
 
 scanDuration = acquisitionTimes(end) - acquisitionTimes(1);
-%scanDirection = (zPositions(end) - zPositions(1)) < 0;
 scanDirection = (zPositions(end) - zPositions(1)) > 0;
 % Account for x-ray warm up.
 xrayWarmupDelay = (stopIndices(ind) - startIndices(ind)) / (1/bellowsSampleRate) - abs(scanDuration);

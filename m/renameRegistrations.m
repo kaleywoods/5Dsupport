@@ -1,11 +1,16 @@
-%% renameRegistrations2
+%% renameRegistrations: Converts output of the deedsMIND registration algorithm
+% to the format used by elastix for use by the 5D Toolbox.
+%
+% Arguments (in):
+% registrationDir: directory containing deedsMIND output in .nii format
+% outputDir: where to put the converted images and deformation fields
+% refScanNumber: number of the scan which was used as the reference image
+
 
 function renameRegistrations(registrationDir, outputDir, refScanNumber)
 
 mkdir(outputDir)
 
-%registrationDir = '/media/fiveDdata/dylan/Pig/deedsRegistrations/Registered/scan2';
-%outputDir = '/media/fiveDdata/dylan/Pig/deedsRegistrations/Organized/scan2';
 
 % Set reference scan number and voxel size
 ref = refScanNumber;

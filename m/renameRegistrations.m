@@ -32,6 +32,11 @@ for ind = 1:numRegistrations
     [~,nIndex] = regexp(deformed{ind},'scan_');
     rIndex = regexp(deformed{ind},'_registered');
     baseFilenames{ind,2} = str2num(deformed{ind}(nIndex+1:rIndex-1));
+
+   	 % Compatability with parallelDeeds scritpt
+    	if isempty(baseFilenames{ind,2})
+	baseFilenames{ind,2} = str2num(cell2mat(regexp(deformed{ind},'\d','match')));
+	end
        
 end
 for ind = 1:numRegistrations

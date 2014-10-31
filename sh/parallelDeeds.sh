@@ -26,4 +26,4 @@ ls $1/*nii | parallel --progress -j$4 deedsMIND $refScan {} $2/{/.} 2.0 128.0
 
 # Remove the "_deformed" appended to the output image from deedsMIND and call resizeFlow
 ls $2/*deformed.nii | sed 's/.\{13\}$//' | parallel --progress -j$4 resizeFlow {.}  
-   
+  

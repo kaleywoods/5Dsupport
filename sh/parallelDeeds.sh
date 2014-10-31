@@ -22,6 +22,9 @@ shopt -u nullglob
 
 # Execute registrations
 refScan=$1/scan_$3_cut.nii
+
+# Comment this out to limit the number of processes by CPU usage rather than number 
+# of jobs
 ls $1/*nii | parallel --progress -j$4 deedsMIND $refScan {} $2/{/.} 2.0 128.0
 
 # Uncomment to use the 4th input argument as a maximum percentage of CPU resources

@@ -4,7 +4,7 @@
 % syncrhonization to the bellows signal.
 
 
-function alignScans(scanData, outputDirectory) 
+function zExtent = alignScans(scanData, outputDirectory) 
 
 % What is the largest range of Z positions that falls within every scan?
 

@@ -302,7 +302,10 @@ end
 
 %% Handle misalgned scans
 if unevenScans
-alignScans(scanData, outputDirectory);
+zExtent = alignScans(scanData, outputDirectory);
+else
+zExtent = false;
+save(fullfile(outputDirectory,'zExtent'),'zExtent');
 end
 
 

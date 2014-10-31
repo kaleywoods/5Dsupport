@@ -149,10 +149,14 @@ loadHeaders = waitbar(0,'Scanning subdirectories for DICOM files...');
 	allScanHeaders = cat(1,allScanHeaders,subfolderHeaders);
 	end
 
+	try
 	waitbar((ind/length(scanSubfolders)),loadHeaders);
-    
+	end 
 	end
-close(loadHeaders)
+	
+	try
+	close(loadHeaders)
+	end
 end
 
 % Sort headers according to acquisition time.
@@ -179,28 +183,23 @@ end
 
 %% Fix unequal numbers of slices or misaligned scans
 
-% Get count of slices for each scan
-sliceCounts = cellfun(@(x) nnz(strcmp(x,allScanHeaders(:,2))), scanIDs);
-
-% Get z positions of each scan
-zPositions = cell2mat(cellfun(@(x) x.('SliceLocation'),allScanHeaders(:,1),'UniformOutput',false));
-zPositionsUnique = unique(zPositions);
+% Get count of slices for each scan 
+sliceCounts = cellfun(@(x) nnz(strcmp(x,allScanHeaders(:,2))), scanIDs); 
+% Get z positions of each scan 
+allZpositions = cell2mat(cellfun(@(x) x.('SliceLocation'),allScanHeaders(:,1),'UniformOutput',false));
+zPositionsUnique = unique(allZpositions);
 
 % Check if more processing is needed
 if any(diff(sliceCounts)) || (length(zPositionsUnique) ~= sliceCounts(1))
-warning('Scans do not have equal numbers of slices. Removing errant slices...');
-
-%% For each unique position, verify that it occurs in each scan
-numOccurences = sum(bsxfun(@eq,zPositionsUnique,zPositions'), 2);
-removeSlices = numOccurences ~= numberOfScans;
-
-%% If slice position doesn't occur in all scans, remove it
-removeHeaders = any(bsxfun(@eq,zPositions,zPositionsUnique(removeSlices)'),2);
-allScanHeaders(removeHeaders,:) = [];
-warning(sprintf('Slices at %d Z positions removed',nnz(removeSlices)));
+warning('Scans do not have equal numbers of slices, or slices are not all at the same Z positions. Attemping to correct...');
+unevenScans = true;
+scanData = struct;
+else
+unevenScans = false;
 end
 
-% Save filenames and scan numbers of dicom slices which were used
+
+%% Save filenames and scan numbers of dicom slices which were used
 scanLabels = zeros(length(allScanHeaders),1);
 for ind = 1:size(scanIDs,1)
 	scanMask = strcmp(scanIDs(ind), allScanHeaders(:,2));
@@ -213,7 +212,12 @@ save(fullfile(outputDirectory,'scanFiles'),'scanFiles');
 %% Process scan images
 
 %Initialize waitbar
+if unevenScans
 loadImages = waitbar(0, 'Synchronizing scans to bellows signal...');
+else
+loadImages = waitbar(0,'Loading, synchronizing, and saving scans...');
+end
+
 % Load images
 for ind = 1:numberOfScans
 
@@ -235,8 +239,8 @@ scanDirection = (zPositions(end) - zPositions(1)) > 0;
 xrayWarmupDelay = (stopIndices(ind) - startIndices(ind)) / (1/bellowsSampleRate) - abs(scanDuration);
 xrayWarmup = ceil((xrayWarmupDelay * (1/bellowsSampleRate)) / 2);
 
-bellowsVoltageXrayOn = scanBellowsVoltage(xrayWarmup + 1 : end - xrayWarmup - 1, ind);
-bellowsTimeXrayOn = scanBellowsTime(xrayWarmup + 1 : end - xrayWarmup - 1, ind);
+bellowsVoltageXrayOn = scanBellowsVoltage(xrayWarmup  : end - xrayWarmup, ind);
+bellowsTimeXrayOn = scanBellowsTime(xrayWarmup : end - xrayWarmup, ind);
 
 % Normalize bellows and acquisition times
 acquisitionTimesNorm = acquisitionTimes - acquisitionTimes(1);
@@ -245,45 +249,61 @@ bellowsTimeXrayOnNorm = bellowsTimeXrayOn - bellowsTimeXrayOn(1);
 % Interpolate to find bellows time corresponding to slice acquisition time
 bellowsVoltageSlices = interp1(bellowsTimeXrayOnNorm,bellowsVoltageXrayOn,acquisitionTimesNorm,'pchip');
 
+%% Collect data for scan alignment if necessary, else save 
+if unevenScans
+	scanData(ind).headers = scanHeaders;
+	scanData(ind).voltage = bellowsVoltageSlices;
+	scanData(ind).time = acquisitionTimes;
+	scanData(ind).direction = scanDirection;
+	scanData(ind).filenames = sliceFileNames;	
+else
+
+% No further processing needed -- save images and bellows data
+
 % Load image
 scanImage = cell2mat(cellfun(@(x) dicomread(x), sliceFileNames, 'UniformOutput',false)');  
 scanImage = reshape(scanImage, scanHeaders{1}.Height, scanHeaders{1}.Width, length(scanHeaders));
 
+% Flip image and voltage if necessary
+if scanDirection < 1
+bellowsVoltageSlices = flipdim(bellowsVoltageSlices,1);
+scanImage = flipdim(scanImage, 3);
+end
 % Resample image to 1x1x1
 scanImage = resample3Dimage_3factors(scanImage,(1/scanHeaders{1}.PixelSpacing(1)), (1/scanHeaders{1}.PixelSpacing(2)), 1);
 
 % Rescale image according to slope and intercept
 scanImage = (scanImage .* scanHeaders{1}.RescaleSlope) + scanHeaders{1}.RescaleIntercept;
 
-% Check scan direction, flip image and slice bellows voltage accordingly
-
-if scanDirection < 1
-
-scanImage = flipdim(scanImage, 3);
-bellowsVoltageSlices = flipdim(bellowsVoltageSlices,1);
-
-end
-    
 %% Change variable names to interface with 5D Toolbox
 
 bvp = bellowsVoltageSlices;
 scan_time = acquisitionTimes;
 direction = scanDirection;
 
-% ECG voltage not currently implemented, but is requried as an argument to 
+% ECG voltage not currently implemented, but is requried as an argument to the function which reads 
+% sync data
+
 ecgvp = bvp;
 
 %% Save variables and images
 
 save(fullfile(outputDirectory,sprintf('image_scan_%d',ind)), 'bvp', 'scan_time', 'direction', 'ecgvp');
 metaImageWrite(scanImage,fullfile(outputDirectory,sprintf('scan_%d_cut',ind)), 'ElementSpacing', [1 1 scanHeaders{1}.SliceThickness])
-
+end
+try
 waitbar((ind/numberOfScans), loadImages);
 end
+end
 
+try
 close(loadImages)
+end
 
-
+%% Handle misalgned scans
+if unevenScans
+alignScans(scanData, outputDirectory);
+end
 
 
 

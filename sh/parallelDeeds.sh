@@ -24,6 +24,15 @@ shopt -u nullglob
 refScan=$1/scan_$3_cut.nii
 ls $1/*nii | parallel --progress -j$4 deedsMIND $refScan {} $2/{/.} 2.0 128.0
 
+# Uncomment to use the 4th input argument as a maximum percentage of CPU resources
+# to use.  The script will only launch another registration if cpu usage is under
+# this percentage.
+# e.g.: parallelDeeds inputDir outputDir refScanNumber 80
+# would only launch additional registrations if CPU usage is less than 80%
+#ls $1/*nii | parallel --progress --load $4% deedsMIND $refScan {} $2/{/.} 2.0 128.0
+
+
+
 # Remove the "_deformed" appended to the output image from deedsMIND and call resizeFlow
 ls $2/*deformed.nii | sed 's/.\{13\}$//' | parallel --progress -j$4 resizeFlow {.}  
   

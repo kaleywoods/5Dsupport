@@ -23,7 +23,7 @@ numRegistrations = length(deformed);
 baseFilenames = cell(numRegistrations,2);
 
 % Process images
-
+renameBar = waitbar(0,'Reformatting images...');
 
 for ind = 1:numRegistrations
     
@@ -59,7 +59,13 @@ for ind = 1:numRegistrations
     
     metaImageWrite(deedsDVF,fullfile(outputDir,sprintf('out_phase%d_phase%d',ref,baseFilenames{ind,2}),'deformationField'));
        
+    try
+	    waitbar(ind/numRegistrations,renameBar);
+    end
 end
-    
+   try
+	  close(renameBar);
+  end
+
     
 

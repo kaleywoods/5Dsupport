@@ -1,8 +1,28 @@
-function patient = Generate_4DCT_toolbox(patient,imageVoltages, imageFlows)
-    
-   use_average_image = 0; %default - don't used the averaged image to deform (use the reference instead).
+%% generate5DCT: create images using model data in patient for specified phases imageVoltages and imageFlows.
+%
+% Arguments(in):
+% patient: patient data structure created by the 5D model toolbox
+% imageVoltages: vector of voltages at which to reconstruct images
+% imageFlows: vector of corresponding flows
+% use_average_image: 1 to deform the averaged image, 0 to deform the reference
+%
+% 5DCT will be saved in the model folder of patient.
+
+
+function patient = generate5DCT(varargin)
+
+patient = varargin{1};
+imageVoltages = varargin{2};
+imageFlows = varargin{3};
+
+if nargin < 4
+	use_average_image = 0;
         prompt = 'Would you like to deform the averaged image [1] or the referece image [0] ?';
         use_average_image = input(prompt);
+else
+use_average_image = varargin{4};
+
+end
         
     if use_average_image>0;
         load([patient.folder '/img_average'])
@@ -11,7 +31,7 @@ function patient = Generate_4DCT_toolbox(patient,imageVoltages, imageFlows)
         deform_image = patient.static;
     end
     
-    patient.folder_4DCT = [patient.model_folder '/Psuedo_4DCT'];
+    patient.folder_4DCT = [patient.model_folder '/5DCT'];
     mkdir(patient.folder_4DCT)
     cd(patient.folder_4DCT)
     dirinfo = dir('*phase*');
@@ -94,11 +114,11 @@ for phase = 1:length(volt)
             clear deformed_image_tmp;
             
             
-            save([patient.folder_4DCT  sprintf('/Deformed_pseudo_Image_phase_%d',phase)],'deformed_image')
-            save([patient.folder_4DCT sprintf('/Deformed_pseudo_Mask_phase_%d',phase)],'deformed_mask')
+            %save([patient.folder_4DCT  sprintf('/Deformed_pseudo_Image_phase_%d',phase)],'deformed_image')
+            %save([patient.folder_4DCT sprintf('/Deformed_pseudo_Mask_phase_%d',phase)],'deformed_mask')
             
             metaImageWrite(deformed_image,[patient.folder_4DCT  sprintf('/Deformed_pseudo_Image_phase_%d',phase)],'ElementSpacing', [1 1 1]);
-            metaImageWrite(double(deformed_mask),[patient.folder_4DCT sprintf('/Deformed_pseudo_Mask_phase_%d',phase)],'ElementSpacing', [1 1 1]);
+            %metaImageWrite(double(deformed_mask),[patient.folder_4DCT sprintf('/Deformed_pseudo_Mask_phase_%d',phase)],'ElementSpacing', [1 1 1]);
 
             toc
             

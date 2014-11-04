@@ -3,7 +3,7 @@
 function [invY, invX, invZ] = invertDVF(vY,vX,vZ)
 
 
-numIterations = 20;
+numIterations = 40;
 
 % Eliminate singlton dimensions and cast as double
 vY = squeeze(double(vY));

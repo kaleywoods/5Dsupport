@@ -14,6 +14,8 @@ mkdir(patient.folder_reconError);
 pseudoScanDir = fullfile(patient.model_folder,'Psuedo_scans');
 numScans = patient.scans;
 
+
+reconBar = waitbar(0,'Calculating original scan reconstruction error and deforming to reference image geometry...');
 for ind = 2:numScans
 
 	% Load error map
@@ -31,6 +33,16 @@ for ind = 2:numScans
 	% Save error map
 	metaImageWrite(errorMap,fullfile(patient.folder_reconError,sprintf('scan%d',ind)),'ElementSpacing',[1 1 1]);
 
+
+	try
+		waitbar(ind/(numScans-1),reconBar);
+	end
+
+end
+
+
+try
+	close(reconBar);
 end
 
 

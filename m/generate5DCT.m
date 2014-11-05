@@ -95,7 +95,8 @@ for phase = 1:length(volt)
             tic
             
         display(sprintf('Scan %d of %d; Inverting DVF...', phase,length(volt)))
-        [ivy,ivx,ivz]=invertDVF(vY,vX,vZ);
+        %[ivy,ivx,ivz]=invertDVF(vY,vX,vZ);
+        [ivy,ivx,ivz]=backwards2forwards(vY,vX,vZ);
         ivy(ivy == 0) = NaN;
         ivx(ivx == 0) = NaN;
         ivz(ivz == 0) = NaN;

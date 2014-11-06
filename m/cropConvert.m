@@ -80,5 +80,11 @@ for ind = 1:numScans
    system(copyCmd);
    waitbar(ind/numScans, imgCrop);
 end
+
+   copyCmd = ['cp -f "' fullfile(imageFolder,'scanFiles.mat') '" "' staticFolder '"']; 
+   system(copyCmd);
+   copyCmd = ['cp -f "' fullfile(imageFolder,'zExtent.mat') '" "' staticFolder '"']; 
+   system(copyCmd);
+   
 save(fullfile(modelFolder,'crop.mat'),'cropDims','originalSize');
 close(imgCrop)

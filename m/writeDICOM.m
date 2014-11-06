@@ -37,6 +37,12 @@ for ind = 1: length(phaseNames)
 % Load phase image 
 phaseImage = metaImageRead(fullfile(patient.model_folder, 'Psuedo_4DCT', sprintf('Deformed_pseudo_Image_phase_%d',ind)));
 
+
+
+% Flip image if necessary
+if patient.directions(patient.ref) == 0
+	phaseImage = flipdim(phaseImage,3);
+end
 % Undo cropping done by cropConver	
 imgFull = ones(patient.originalSize) * min(phaseImage(:));
 imgFull(patient.cropDims(1,1):patient.cropDims(1,2),patient.cropDims(2,1):patient.cropDims(2,2),:) = phaseImage;

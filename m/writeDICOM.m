@@ -26,16 +26,16 @@ originalScanFolders = dir(patient.folder_original_dicoms);
 originalScanFolders = originalScanFolders([originalScanFolders.isdir]);
 originalScanFolders = sort_nat(cellfun(@num2str, setdiff({originalScanFolders.name},{'.','..'}),'uni',false));
 
-refScanSlices = dir(fullfile(patient.folder_original_dicoms, originalScanFolders{patient.ref},'*.dcm')); 
-
-refScanHeaders = cellfun(@(x) dicominfo(fullfile(patient.folder_original_dicoms, originalScanFolders{patient.ref},x)), {refScanSlices.name}, 'uni', false);
+refScanSlices = dir(fullfile(patient.folder_original_dicoms, originalScanFolders{patient.ref},'*')); 
+refScanSlices = setdiff({refScanSlices.name},{'.','..'});
+refScanHeaders = cellfun(@(x) dicominfo(fullfile(patient.folder_original_dicoms, originalScanFolders{patient.ref},x)), refScanSlices, 'uni', false);
 
 %% Convert 5DCT phase images to dicom and save
 saveBar = waitbar(0,'Saving 5DCT...');
 for ind = 1: length(phaseNames)
 
 % Load phase image 
-phaseImage = metaImageRead(fullfile(patient.model_folder, 'Psuedo_4DCT', sprintf('Deformed_pseudo_Image_phase_%d',ind)));
+phaseImage = metaImageRead(fullfile(patient.model_folder, '5DCT', sprintf('Deformed_pseudo_Image_phase_%d',ind)));
 
 
 

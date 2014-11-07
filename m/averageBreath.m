@@ -78,7 +78,7 @@ end
 %% Discard outliers
 
 % Set tolerance to 2 standard deviatons
-tol = 2;
+tol = 1;
 
 % Check amplitude
 ampMin = cellfun(@min, breaths);
@@ -109,7 +109,7 @@ breathTrace = cell2mat(breaths);
 % Compute 5th and 85th percentile amplitude, treat as maximum and minimum
 % Make grid of amplitudes to sample at
 
-breathGrid = linspace(prctile(breathTrace,5),prctile(breathTrace,95),25);
+breathGrid = linspace(prctile(breathTrace,5),prctile(breathTrace,85),25);
 
 % Smooth each breath
 breaths = cellfun(@smooth, breaths, 'uni',false);

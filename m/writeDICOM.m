@@ -30,6 +30,13 @@ refScanSlices = dir(fullfile(patient.folder_original_dicoms, originalScanFolders
 refScanSlices = setdiff({refScanSlices.name},{'.','..'});
 refScanHeaders = cellfun(@(x) dicominfo(fullfile(patient.folder_original_dicoms, originalScanFolders{patient.ref},x)), refScanSlices, 'uni', false);
 
+%% Sort headers by acquisition time
+
+acquisitionTimes = cellfun(@(x) time2sec(str2num(x.('AcquisitionTime'))), refScanHeaders, 'uni', 0);
+refScanHeaders = [refScanHeaders(:) acquisitionTimes(:)];
+refScanHeaders = sortrows(refScanHeaders, 2);
+refScanHeaders = refScanHeaders(:,1);
+
 %% Convert 5DCT phase images to dicom and save
 saveBar = waitbar(0,'Saving 5DCT...');
 for ind = 1: length(phaseNames)
